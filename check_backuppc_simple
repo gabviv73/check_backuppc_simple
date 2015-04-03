@@ -35,7 +35,7 @@ no utf8;
 
 # Nagios
 use lib "/usr/lib/nagios/plugins";
-use Nagios::Plugin qw(%ERRORS);
+use Nagios::Plugin qw(%ERRORS %STATUS_TEXT);
 use POSIX qw(strftime difftime);
 use Getopt::Long;
 Getopt::Long::Configure('bundling');
@@ -181,7 +181,8 @@ foreach my $host (sort(keys(%Status))) {
 
 	my $lastGoodBackupTime = $Status{$host}{'lastGoodBackupTime'} + 1;
 	my $now = time();
-	my $hoursAgo = sprintf("%1f", ($now - $lastGoodBackupTime) /60/60);
+	my $hoursAgo = ($now - $lastGoodBackupTime) /60/60 ;
+	$hoursAgo = sprintf("%.1f", $hoursAgo);
 	my $lastGoodBackupDate = strftime("%Y-%m-%d %H:%M:%S", localtime($lastGoodBackupTime));
 	my $StatusHostError=$Status{$host}{'error'};
 	$hostCount++;
@@ -191,7 +192,7 @@ foreach my $host (sort(keys(%Status))) {
 		print "Host $host state " . $Status{$host}{'state'};
 		print " Errors: " . $StatusHostError . "\n";
 		print " Last Good Backup was done on $lastGoodBackupDate\n" ;
-		printf  (" Last Good Backup was done %.1f hours ago\n", $hoursAgo);
+		print " Last Good Backup was done $hoursAgo hours ago\n";
 	}
 
 	if ( $StatusHostError ne "" ) 	{
@@ -245,61 +246,30 @@ if ($verbose > 0) {
 
 # Backups are too old ?
 if ($#tooOld > -1) {
-	print "BACKUPPC WARNING - ";
-	foreach my $host (@tooOld) {
-		my $lastGoodBackupTime = $Status{$host}{'lastGoodBackupTime'} + 1;
-		my $now = time();
-		my $hoursAgo = ($now - $lastGoodBackupTime) /60/60;
-		my $lastGoodBackupDate = strftime("%Y-%m-%d %H:%M:%S", localtime($lastGoodBackupTime));
-		if ($verbose>0) { 
-			printf("($host) Last Good Backup was done %.1f hours ago\n", $hoursAgo) ; 
-		}
-	}
+	$errorString="( " . ($#tooOld + 1)  . "/" . $hostCount . " ) backups are too old " . $errorString; 
 	if ( $exitStatus != $ERRORS{'CRITICAL'} )  {
 		$exitStatus = $ERRORS{'WARNING'};
 	}
 }
 
 if ( $#tooMuchOld > -1) {
-	print "BACKUPPC CRITICAL - ";
-	foreach my $host (@tooMuchOld) {
-		my $lastGoodBackupTime = $Status{$host}{'lastGoodBackupTime'} + 1;
-		my $now = time();
-		my $hoursAgo = ($now - $lastGoodBackupTime) /60/60;
-		my $lastGoodBackupDate = strftime("%Y-%m-%d %H:%M:%S", localtime($lastGoodBackupTime));
-		if ($verbose>0) { 
-			printf("($host) Last Good Backup was done %.1f hours ago\n", $hoursAgo) ; 
-		}
-	}
+	$errorString="( " . ($#tooMuchOld + 1)  . "/" . $hostCount . " ) backups are too much old " . $errorString; 
 	$exitStatus=$ERRORS{'CRITICAL'};
 }
 
 
 # Are there erros ?
-if ( $#badHost + 1 >= $warnLevel ) {
-	print "BACKUPPC WARNING - ";
-	print "( " . $#badHost + 1  . "/" . $hostCount . " ) failures\n";
-	foreach my $host (@badHost) {
-		if ($verbose>0) { 
-			print $host . " (" . $Status{$host}{'error'} . "), ";
-		}
-	}
-	print ")\n";
+if ( $#badHost+1 >= $critLevel ) {
+	$errorString="( " . ($#badHost + 1)  . "/" . $hostCount . " ) hosts  have failures " . $errorString;
+	$exitStatus=$ERRORS{'CRITICAL'};
+}
+elsif ( $#badHost + 1 >= $warnLevel ) {
+	$errorString="( " . ($#badHost + 1)  . "/" . $hostCount . " ) hosts have failures " . $errorString;
 	if ( $exitStatus != $ERRORS{'CRITICAL'} )  {
 		$exitStatus = $ERRORS{'WARNING'};
 	}
 }
 
-if ( $#badHost+1 >= $critLevel ) {
-	print "BACKUPPC CRITICAL - ";
-	print "( " . $#badHost + 1  . "/" . $hostCount . " ) failures\n";
-	foreach my $host (@badHost) {
-		if ($verbose>0) { 
-			print $host . " (" . $Status{$host}{'error'} . "), ";
-		}
-	}
-	print ")\n";
-	$exitStatus=$ERRORS{'CRITICAL'};
-}
-print $errorString;
+
+print "BACKUPPC $STATUS_TEXT{$exitStatus} - $errorString\n";
 exit $exitStatus;
