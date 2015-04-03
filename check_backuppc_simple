@@ -259,11 +259,11 @@ if ( $#tooMuchOld > -1) {
 
 
 # Are there erros ?
-if ( $#badHost+1 >= $critLevel ) {
+if ( ($#badHost+1) >= $critLevel ) {
 	$errorString="( " . ($#badHost + 1)  . "/" . $hostCount . " ) hosts  have failures " . $errorString;
 	$exitStatus=$ERRORS{'CRITICAL'};
 }
-elsif ( $#badHost + 1 >= $warnLevel ) {
+elsif ( ($#badHost + 1) >= $warnLevel ) {
 	$errorString="( " . ($#badHost + 1)  . "/" . $hostCount . " ) hosts have failures " . $errorString;
 	if ( $exitStatus != $ERRORS{'CRITICAL'} )  {
 		$exitStatus = $ERRORS{'WARNING'};
