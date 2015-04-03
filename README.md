@@ -1,5 +1,5 @@
 # check_backuppc_simple
-Nagios plugin to check BAckupPc
+Nagios plugin to check BackupPc
 
 This plugins check backup jobs on a local BackupPc server
 
